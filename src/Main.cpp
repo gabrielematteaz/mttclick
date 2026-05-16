@@ -1,6 +1,7 @@
 #include <Windows.h>
 #include <array>
 #include <system_error>
+#include <cstdlib>
 #include <exception>
 #include <cstdio>
 #include <print>
@@ -23,7 +24,22 @@ void Click() {
 }
 
 int WINAPI wWinMain(_In_ HINSTANCE, _In_ HINSTANCE, _In_opt_ LPWSTR, _In_ int) {
+  LPWSTR *arguments = NULL;
+
   try {
+    auto commandLine = GetCommandLineW();
+    int argumentCount;
+    arguments = CommandLineToArgvW(commandLine, &argumentCount);
+    UINT milliseconds = 50;
+
+    if (argumentCount > 1) {
+      milliseconds = wcstoul(arguments[1], NULL, 10);
+    }
+
+    if (arguments == NULL) {
+      throw std::system_error(GetLastError(), std::system_category(), "CommandLineToArgvW");
+    }
+
     if (!RegisterHotKey(NULL, ID_EXIT, MOD_CONTROL | MOD_NOREPEAT, VK_MULTIPLY)) {
       throw std::system_error(GetLastError(), std::system_category(), "RegisterHotKey");
     }
@@ -47,7 +63,7 @@ int WINAPI wWinMain(_In_ HINSTANCE, _In_ HINSTANCE, _In_opt_ LPWSTR, _In_ int) {
 
         if (ID == ID_START) {
           if (timerID == 0) {
-            timerID = SetTimer(NULL, 0, 10, NULL); 
+            timerID = SetTimer(NULL, 0, milliseconds, NULL); 
           }
         }
         else if (ID == ID_STOP) {
@@ -80,6 +96,7 @@ int WINAPI wWinMain(_In_ HINSTANCE, _In_ HINSTANCE, _In_opt_ LPWSTR, _In_ int) {
   UnregisterHotKey(NULL, ID_START);
   UnregisterHotKey(NULL, ID_STOP);
   UnregisterHotKey(NULL, ID_EXIT);
+  LocalFree(arguments);
 
   return 0;
 }
